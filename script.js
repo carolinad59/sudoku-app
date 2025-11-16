@@ -365,7 +365,13 @@ function checkWin() {
 // ------------------------------
 // TEMATICAS
 // ------------------------------
-let theme = "classic"; // por defecto
+let theme = "classic"; // tema por defecto
+
+const themeSelect = document.getElementById("theme-select");
+themeSelect.addEventListener("change", function() {
+    theme = this.value;
+    displaySudoku(currentPuzzle); // refresca la cuadrícula con el nuevo tema
+});
 const brailleMap = {
     1: "⠁", 2: "⠃", 3: "⠉",
     4: "⠙", 5: "⠑", 6: "⠋",
