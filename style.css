@@ -6,11 +6,10 @@ body {
     padding: 10px;
 }
 
-/* Título */
 h1 {
     font-size: 2em;
     margin: 10px 0;
-    white-space: nowrap; /* evita que se rompa en varias líneas */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -29,7 +28,7 @@ h1 {
 /* Cada celda */
 .cell {
     background: white;
-    border: 1px solid #ccc; /* borde fino por defecto */
+    border: 1px solid #ccc;
     font-size: 22px;
     text-align: center;
     cursor: pointer;
@@ -37,13 +36,23 @@ h1 {
     position: relative;
 }
 
-/* Bordes gruesos para bloques de 3x3 */
+/* Bordes gruesos */
 .border-top { border-top: 3px solid black; }
 .border-bottom { border-bottom: 3px solid black; }
 .border-left { border-left: 3px solid black; }
 .border-right { border-right: 3px solid black; }
 
-/* Input dentro de las celdas */
+/* Celda fija (predeterminada) */
+.fixed-cell {
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: normal; /* <-- importante: sin bold */
+}
+
+/* Input */
 .cell input {
     width: 100%;
     height: 100%;
@@ -58,35 +67,7 @@ h1 {
     font-weight: bold;
 }
 
-.notes {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    font-size: 0.5em;
-    color: gray;
-    pointer-events: none;
-    line-height: 1em;
-}
-
-#toggle-notes.active {
-    background-color: #4CAF50;
-    color: white;
-}
-
-/* color de las casillas predeterminadas */
-.fixed-cell {
-    background-color: white;
-    display: flex;
-    justify-content: center; /* centrar horizontal */
-    align-items: center;     /* centrar vertical */
-    font-size: 22px;         /* mantener tamaño legible */
-}
-
-/* casillas escritas por el jugador */
-.cell input.correct {
-    background-color: #e0e0e0;
-}
-
+/* Notas */
 .notes {
     position: absolute;
     top: 0;
@@ -108,9 +89,16 @@ h1 {
     align-items: center;
 }
 
+/* Botón notas ON */
+#toggle-notes.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Animación Victoria */
 #win-message {
     animation: pop 1s ease-out forwards;
-    background-color: white; /* fondo blanco para resaltar */
+    background-color: white;
     padding: 20px 40px;
     border-radius: 10px;
     box-shadow: 0px 0px 20px rgba(0,0,0,0.3);
@@ -120,42 +108,4 @@ h1 {
     0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
     50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
-
-/* =======================
-   ESTILOS PARA MÓVIL
-   ======================= */
-@media screen and (max-width: 600px) {
-    h1 {
-        font-size: 1.5em;
-        white-space: normal; /* permitir que se rompa en 2 líneas si hace falta */
-    }
-
-    #sudoku-grid {
-        margin: 20px auto;
-        width: min(450px, 90vw);
-        height: min(450px, 90vw);
-        display: grid;
-        grid-template-columns: repeat(9, 1fr);
-        grid-template-rows: repeat(9, 1fr);
-        gap: 1px;
-    }
-
-    .cell {
-        font-size: 16px;
-    }
-
-    .cell input {
-        font-size: 16px;
-    }
-
-    button, select {
-        font-size: 14px;
-        padding: 6px 10px;
-        margin: 3px;
-    }
-
-    #timer {
-        font-size: 16px;
-    }
 }
