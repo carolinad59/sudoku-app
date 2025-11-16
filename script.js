@@ -164,6 +164,7 @@ function displaySudoku(board) {
 
             if (board[i][j] !== 0) {
                 cell.textContent = board[i][j];
+                cell.classList.add("fixed-cell");
             } else {
                 let input = document.createElement("input");
                 input.setAttribute("type", "text");
@@ -197,8 +198,31 @@ function displaySudoku(board) {
                             errorCount++;
                             document.getElementById("error-count").textContent = errorCount;
                         } else {
-                            this.style.backgroundColor = "white"; // correcto
+                            this.style.backgroundColor = "#e0e0e0"; // gris si correcto
                         }
+                    }
+
+                    if(checkWin()){
+                        clearInterval(timer);
+                        confetti({
+                            particleCount:150,
+                            spread:70,
+                            origin:{y:0.6}
+                        });
+                        const winMessage=document.createElement("div");
+                        winMessage.id="win-message";
+                        winMessage.textContent="🎉 GANASTE 🎉";
+                        winMessage.style.position="fixed";
+                        winMessage.style.top="40%";
+                        winMessage.style.left="50%";
+                        winMessage.style.transform="translate(-50%,-50%)";
+                        winMessage.style.fontSize="3em";
+                        winMessage.style.color="#ff6600";
+                        winMessage.style.backgroundColor="white"; // <-- fondo blanco
+                        winMessage.style.padding="20px 40px";      // <-- padding
+                        winMessage.style.borderRadius="10px";      // <-- esquinas redondeadas
+                        winMessage.style.zIndex="1000";
+                        document.body.appendChild(winMessage);
                     }
                 });
 
@@ -273,4 +297,16 @@ function updateTimerDisplay() {
     const min = String(Math.floor(seconds / 60)).padStart(2, "0");
     const sec = String(seconds % 60).padStart(2, "0");
     document.getElementById("timer").textContent = `Tiempo: ${min}:${sec}`;
+}
+
+
+function checkWin() {
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            if (currentPuzzle[i][j] === 0 || !checkCell(currentPuzzle, i, j, currentPuzzle[i][j])) {
+                return false;
+            }
+        }
+    }
+    return true;
 }

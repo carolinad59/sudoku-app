@@ -61,3 +61,19 @@ body {
     background-color: #4CAF50;
     color: white;
 }
+
+/* color de las casillas que marcas tu */
+.player-cell {
+    background-color: #e0e0e0;
+    font-weight: bold;
+}
+
+#win-message {
+    animation: pop 1s ease-out forwards;
+}
+
+@keyframes pop {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
