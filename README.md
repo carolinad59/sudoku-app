@@ -3,8 +3,9 @@
 A fully interactive Sudoku game built with HTML, CSS, and JavaScript.
 Includes themes, notes mode, error tracking, difficulty levels, and mobile support.
 
-✨ **Features
-🧩 Sudoku Generation**
+✨ **Features**
+
+🧩 **Sudoku Generation**
 
 Generates a complete valid Sudoku board using backtracking.
 
