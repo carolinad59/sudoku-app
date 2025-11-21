@@ -21,6 +21,7 @@
         <option value="classic">Clásico</option>
         <option value="romano">Imperio romano</option>
         <option value="braille">Braille</option>
+        <option value="geometria">Geometría</option>
         <option value="musical">Musical</option>
         <option value="colores">Colores</option>
         <option value="flores">Flores</option>
@@ -33,9 +34,12 @@
     <div id="sudoku-grid"></div>
     <div id="keypad" style="margin-top: 20px;"></div>
 
+    <!-- Contador de errores -->
+    <p>Errores: <span id="error-count">0</span></p>
+
     <p>
-        <button id="new-game">Nuevo Sudoku</button>
-        <button id="restart-game">Reiniciar Sudoku</button>
+        <button id="new-game">Nuevo</button>
+        <button id="restart-game">Reiniciar</button>
         <button id="toggle-notes">Notas OFF</button>
         <button id="toggle-probe">Probar OFF</button>
     </p>
@@ -48,8 +52,6 @@
         <option>Imposible</option>
     </select>
 
-    <!-- Contador de errores -->
-    <p>Errores: <span id="error-count">0</span></p>
 
     <!-- Confetti SIEMPRE antes de script.js -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
