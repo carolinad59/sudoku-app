@@ -379,6 +379,7 @@ let probeMode = false; // Modo prueba
 let selectedCell = null;
 let hasImpossibleTrap = false; // Si el puzzle imposible tiene trampa
 let trapInfo = null; // Info sobre la trampa: {row, col, originalValue, trapValue}
+let bombCell = null; // {r, c} celda bomba aleatoria
 
 // Para posicionar notas: (1..9) => posiciones relativas CSS
 const NOTE_POSITIONS = {
@@ -508,7 +509,15 @@ function handleCellInput(inputElement, row, col, input, notesDiv) {
     
     // tomamos sólo el primer caracter numérico
     const raw = inputElement.value.trim();
-    const val = raw === "" ? 0 : parseInt(raw[0]) || 0;
+    let val = 0;
+    if (raw === "") {
+        val = 0;
+    } else if (/^[0-9]/.test(raw[0])) {
+        val = parseInt(raw[0]) || 0;
+    } else {
+        // Convertir símbolo temático a número
+        val = getNumberFromSymbol(raw);
+    }
 
     if (notesMode) {
         // MODO NOTAS: alternar notas en notesDiv
@@ -549,6 +558,11 @@ function handleCellInput(inputElement, row, col, input, notesDiv) {
                 input.style.color = "black";
                 input.value = "";
             } else {
+                // Si es la celda bomba y el valor es incorrecto, explota incluso en modo prueba
+                if (val !== solutionPuzzle[row][col] && isBombCell(row, col)) {
+                    doBomb(row, col);
+                    return;
+                }
                 input.style.backgroundColor = "#4169E1"; // Azul oscuro
                 input.style.color = "white";
                 input.value = renderSymbol(val);
@@ -570,6 +584,11 @@ function handleCellInput(inputElement, row, col, input, notesDiv) {
                 }
             } else if (val !== solutionPuzzle[row][col]) {
                 // número incorrecto
+                // Si es la celda bomba y el valor es incorrecto, explota
+                if (isBombCell(row, col)) {
+                    doBomb(row, col);
+                    return; // detener más procesamiento
+                }
                 input.style.backgroundColor = "#ff4d4d";
                 input.style.color = "white";
                 // Solo contar error si cambió a incorrecto (no era incorrecto antes)
@@ -650,6 +669,11 @@ function displayKeypad() {
                     input.style.backgroundColor = "white";
                     notesDiv.innerHTML = "";
                 } else {
+                    // Bomb en modo prueba si el valor es incorrecto
+                    if (val !== solutionPuzzle[i][j] && isBombCell(parseInt(i), parseInt(j))) {
+                        doBomb(parseInt(i), parseInt(j));
+                        return;
+                    }
                     currentPuzzle[i][j] = val;
                     notesDiv.innerHTML = ""; // BORRAR notas
                     input.value = renderSymbol(val);
@@ -668,6 +692,11 @@ function displayKeypad() {
                     input.style.backgroundColor = "white";
                     notesDiv.innerHTML = "";
                 } else {
+                    // Bomb si valor incorrecto
+                    if (val !== solutionPuzzle[i][j] && isBombCell(parseInt(i), parseInt(j))) {
+                        doBomb(parseInt(i), parseInt(j));
+                        return;
+                    }
                     currentPuzzle[i][j] = val;
                     notesDiv.innerHTML = ""; // BORRAR notas
                     input.value = renderSymbol(val);
@@ -822,7 +851,10 @@ function doLose() {
     if (!loseMessage) {
         loseMessage = document.createElement("div");
         loseMessage.id = "lose-message";
-        loseMessage.textContent = "😢 PERDISTE 😢";
+        loseMessage.innerHTML = `
+            <div style="margin-bottom:10px;">😢 PERDISTE 😢</div>
+            <button id="lose-retry" style="padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">Volver a jugar</button>
+        `;
         Object.assign(loseMessage.style, {
             position: "fixed",
             top: "35%",
@@ -839,6 +871,11 @@ function doLose() {
             animation: "sadBounce 0.8s ease-in-out"
         });
         document.body.appendChild(loseMessage);
+        const btn = document.getElementById("lose-retry");
+        if (btn) btn.addEventListener("click", () => {
+            loseMessage.remove();
+            newSudoku();
+        });
     }
 
     // Caras tristes cayendo
@@ -918,6 +955,10 @@ function newSudoku() {
 
     currentPuzzle = puzzleBoard;
     originalPuzzle = currentPuzzle.map(row => row.slice()); // clon profundo
+
+    // Elegir una celda bomba aleatoria entre las vacías
+    bombCell = pickRandomBombCell(currentPuzzle);
+    injectBombStyles();
     
     // Mostrar/ocultar botón rendirse según nivel
     updateSurrenderButton();
@@ -938,6 +979,168 @@ function restartSudoku() {
     displaySudoku(currentPuzzle);
     displayKeypad();
     startTimer();
+}
+
+function pickRandomBombCell(board) {
+    const empties = [];
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (board[r][c] === 0) empties.push({r, c});
+        }
+    }
+    if (!empties.length) return null;
+    return empties[Math.floor(Math.random() * empties.length)];
+}
+
+function isBombCell(r, c) {
+    return bombCell && bombCell.r === r && bombCell.c === c;
+}
+
+function injectBombStyles() {
+    if (document.getElementById('bomb-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'bomb-styles';
+    style.textContent = `
+    @keyframes shake {
+      0%,100%{transform:translate(0,0)}
+      20%{transform:translate(-5px,0)}
+      40%{transform:translate(5px,0)}
+      60%{transform:translate(-3px,0)}
+      80%{transform:translate(3px,0)}
+    }
+    .grid-shake { animation: shake 0.6s ease-in-out 2; }
+    
+    @keyframes explode-particle {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(
+          calc(cos(var(--angle)) * var(--distance)),
+          calc(sin(var(--angle)) * var(--distance))
+        ) scale(0.2);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes shatter {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--tx), var(--ty)) rotate(var(--rotate));
+        opacity: 0;
+      }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes popIn {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    `;
+    document.head.appendChild(style);
+}
+
+function doBomb(r, c) {
+    // Animación de explosión y derrota especial
+    const grid = document.getElementById('sudoku-grid');
+    
+    // Crear efecto de explosión con partículas
+    if (grid) {
+        // Shake inicial
+        grid.classList.add('grid-shake');
+        
+        // Crear partículas de explosión desde la celda bomba
+        const bombCell = grid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+        if (bombCell) {
+            const rect = bombCell.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // Generar 30 partículas que explotan desde el centro
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.textContent = ['💥', '🔥', '✨', '💫'][Math.floor(Math.random() * 4)];
+                particle.style.cssText = `
+                    position: fixed;
+                    left: ${centerX}px;
+                    top: ${centerY}px;
+                    font-size: ${20 + Math.random() * 30}px;
+                    pointer-events: none;
+                    z-index: 9998;
+                    animation: explode-particle ${0.8 + Math.random() * 0.4}s ease-out forwards;
+                    --angle: ${Math.random() * 360}deg;
+                    --distance: ${100 + Math.random() * 200}px;
+                `;
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 1200);
+            }
+        }
+        
+        // Romper el grid en pedazos después de 0.3s
+        setTimeout(() => {
+            const cells = grid.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                setTimeout(() => {
+                    cell.style.animation = `shatter ${0.6 + Math.random() * 0.3}s ease-out forwards`;
+                    cell.style.setProperty('--tx', (Math.random() - 0.5) * 400 + 'px');
+                    cell.style.setProperty('--ty', (Math.random() - 0.5) * 400 + 'px');
+                    cell.style.setProperty('--rotate', (Math.random() - 0.5) * 720 + 'deg');
+                }, index * 15);
+            });
+        }, 300);
+    }
+
+    // Mostrar overlay después de la explosión
+    setTimeout(() => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            display:flex; align-items:center; justify-content:center; z-index:9999;
+            animation: fadeIn 0.4s ease-out;`;
+        const box = document.createElement('div');
+        box.style.cssText = `text-align:center; color:white; animation: popIn 0.5s ease-out;`;
+        box.innerHTML = `
+            <div style="font-size:90px; line-height:1; margin-bottom:15px;">💥</div>
+            <h1 style="margin:0 0 10px; font-size:3em; color:#ff5722;">¡BOMBA!</h1>
+            <p style="margin:0 0 5px; font-size:1.3em;">Has detonado una bomba</p>
+            <p style="margin:0 0 20px; font-size:1.3em;">Has perdido 😜</p>
+            <button id="bomb-retry" style="padding:12px 25px; background:#ff5722; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:1.1em;">Volver a jugar</button>
+        `;
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        document.getElementById('bomb-retry').addEventListener('click', () => {
+            overlay.remove();
+            if (grid) {
+                grid.classList.remove('grid-shake');
+                // Restaurar celdas para el nuevo juego
+                const cells = grid.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.style.animation = '';
+                    cell.style.transform = '';
+                    cell.style.opacity = '';
+                });
+            }
+            newSudoku();
+        });
+    }, 1500);
+
+    stopTimer();
+    recordGame(false, 'bomb');
 }
 
 // Actualizar visibilidad del botón rendirse
@@ -1241,7 +1444,7 @@ if (difficultySelect) {
 }
 
 // funcion para guardar las estadisticas en localStorage
-function recordGame(won) {
+function recordGame(won, reason) {
     let gameHistory = JSON.parse(localStorage.getItem("sudokuStats")) || [];
     gameHistory.push({
         level: currentLevel,
@@ -1249,7 +1452,8 @@ function recordGame(won) {
         time: seconds,
         won: won,
         errors: errorCount,
-        ts: Date.now()
+        ts: Date.now(),
+        reason: reason || null
     });
     localStorage.setItem("sudokuStats", JSON.stringify(gameHistory));
 }

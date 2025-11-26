@@ -181,13 +181,14 @@ function renderGamesTable() {
             hour: '2-digit',
             minute: '2-digit'
         }) : "-";
-        const resultadoColor = g.won ? '#4CAF50' : '#f44336';
+        const resultLabel = g.reason === 'bomb' ? '💥 Bomba' : (g.won ? '✓ Ganada' : '✗ Perdida');
+        const resultadoColor = g.reason === 'bomb' ? '#ff5722' : (g.won ? '#4CAF50' : '#f44336');
         tr.innerHTML = `
             <td style="padding:8px; border:1px solid #ddd; text-align:center;">${i+1}</td>
             <td style="padding:8px; border:1px solid #ddd;">${g.level}</td>
             <td style="padding:8px; border:1px solid #ddd;">${g.theme}</td>
             <td style="padding:8px; border:1px solid #ddd; text-align:center;">${formatTime(g.time || 0)}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center; color:${resultadoColor}; font-weight:bold;">${g.won ? '✓ Ganada' : '✗ Perdida'}</td>
+            <td style="padding:8px; border:1px solid #ddd; text-align:center; color:${resultadoColor}; font-weight:bold;">${resultLabel}</td>
             <td style="padding:8px; border:1px solid #ddd; text-align:center;">${g.errors ?? '-'}</td>
             <td style="padding:8px; border:1px solid #ddd; font-size:0.9em;">${fecha}</td>
         `;
