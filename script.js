@@ -640,6 +640,7 @@ function doWin() {
         
         winMessage.appendChild(playAgainBtn);
         document.body.appendChild(winMessage);
+        
     }
 
     // Crear muchos pollitos cayendo (15 pollitos con animación escalonada)
@@ -663,6 +664,7 @@ function doWin() {
             document.body.appendChild(chick);
         }, i * 150);
     }
+    recordGame(true);
 }
 
 // Agregar animación CSS para los pollitos
@@ -734,6 +736,7 @@ function doLose() {
             document.body.appendChild(sadFace);
         }, i * 300);
     }
+    recordGame(false);
 }
 
 // Agregar animaciones CSS para derrota
@@ -991,3 +994,24 @@ document.addEventListener("DOMContentLoaded", () => {
     // Inicializar primer sudoku
     newSudoku();
 });
+
+// abrir pagina de Estadisticas
+const statsBtn = document.getElementById("btn-stats");
+if (statsBtn) {
+    statsBtn.addEventListener("click", () => {
+        window.location.href = "statistics.html"; // abre nueva página
+    });
+}
+
+// funcion para guardar las estadisticas en localStorage
+function recordGame(won) {
+    let gameHistory = JSON.parse(localStorage.getItem("sudokuStats")) || [];
+    gameHistory.push({
+        level: currentLevel,
+        theme: theme,
+        time: seconds,
+        won: won,
+        errors: errorCount
+    });
+    localStorage.setItem("sudokuStats", JSON.stringify(gameHistory));
+}
