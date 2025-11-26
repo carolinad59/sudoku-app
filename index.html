@@ -16,24 +16,39 @@
 
     <div id="timer">Tiempo: 00:00</div>
 
-    <label for="theme-select">Temática:</label>
-    <select id="theme-select">
-        <option value="classic">Clásico</option>
-        <option value="romano">Imperio romano</option>
-        <option value="braille">Braille</option>
-        <option value="geometria">Geometría</option>
-        <option value="musical">Musical</option>
-        <option value="colores">Colores</option>
-        <option value="flores">Flores</option>
-        <option value="animales">Animales</option>
-        <option value="bombon">Bombón</option>
-        <option value="amor">Amor</option>
-        <option value="mundo">Mundo</option>
-    </select>
-
-    <!-- Botón de estadísticas -->
-    <button id="btn-stats" style="margin-left:10px; padding:5px 10px; font-size:1em;">📊 Estadísticas</button>
-
+    <div style="display:flex; align-items:center; justify-content:center; gap:15px; flex-wrap:wrap; margin:15px 0;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <label for="theme-select">Temática:</label>
+            <select id="theme-select">
+                <option value="classic">Clásico</option>
+                <option value="romano">Imperio romano</option>
+                <option value="braille">Braille</option>
+                <option value="geometria">Geometría</option>
+                <option value="musical">Musical</option>
+                <option value="colores">Colores</option>
+                <option value="flores">Flores</option>
+                <option value="animales">Animales</option>
+                <option value="bombon">Bombón</option>
+                <option value="amor">Amor</option>
+                <option value="mundo">Mundo</option>
+            </select>
+        </div>
+        
+        <button id="btn-stats" style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)'">
+            📊 Estadísticas
+        </button>
+    </div>
 
     <div id="sudoku-grid"></div>
     <div id="keypad" style="margin-top: 20px;"></div>

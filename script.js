@@ -1011,7 +1011,8 @@ function recordGame(won) {
         theme: theme,
         time: seconds,
         won: won,
-        errors: errorCount
+        errors: errorCount,
+        ts: Date.now()
     });
     localStorage.setItem("sudokuStats", JSON.stringify(gameHistory));
 }
