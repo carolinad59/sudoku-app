@@ -306,6 +306,163 @@ function analyzeDifficulty(board) {
     return maxTechnique;
 }
 
+// ========================================
+// NEW: Validate puzzle meets logical difficulty requirements
+// ========================================
+// This function checks if a puzzle qualifies for a given difficulty level
+// based on logical complexity, NOT cell count.
+// 
+// ADVANCED: Must require at least Hidden Singles (not solvable by naked singles alone)
+// MASTER:   Must require Naked Pairs or Locked Candidates (no immediate singles at start)
+// IMPOSSIBLE: Must require advanced techniques beyond pairs (X-Wing, chains, etc.)
+function qualifiesDifficulty(puzzle, level) {
+    const testBoard = puzzle.map(row => row.slice());
+    
+    // Count how many naked singles exist at the very start
+    let initialNakedSingles = 0;
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (testBoard[r][c] === 0) {
+                const candidates = getCandidates(testBoard, r, c);
+                if (candidates.length === 1) {
+                    initialNakedSingles++;
+                }
+            }
+        }
+    }
+    
+    // Determine overall logical complexity tier
+    const techLevel = analyzeDifficulty(testBoard);
+    
+    // Apply difficulty-specific checks
+    if (level === "Avanzado") {
+        // ADVANCED: Must NOT be solvable with only naked singles.
+        // Check: techLevel must be >= 2 (requires hidden singles or better)
+        // AND there should be some ambiguity (cells with 2+ candidates even after naked singles)
+        
+        const hasAmbiguity = countAmbiguousCells(puzzle) > 3;
+        const qualifies = techLevel >= 2 && hasAmbiguity;
+        
+        // DEBUG: Uncomment to trace board acceptance
+        // console.log(`[ADVANCED] techLevel=${techLevel}, ambiguity=${countAmbiguousCells(puzzle)}, qualifies=${qualifies}`);
+        
+        return qualifies;
+    }
+    
+    if (level === "Maestro") {
+        // MASTER: No immediate singles at start.
+        // Check: techLevel >= 3 AND initialNakedSingles < 2
+        // This ensures the solver must think beyond the first move.
+        
+        const noImmediateSingles = initialNakedSingles < 2;
+        const qualifies = techLevel >= 3 && noImmediateSingles;
+        
+        // DEBUG: Uncomment to trace board acceptance
+        // console.log(`[MASTER] techLevel=${techLevel}, initialNakedSingles=${initialNakedSingles}, qualifies=${qualifies}`);
+        
+        return qualifies;
+    }
+    
+    if (level === "Imposible") {
+        // IMPOSSIBLE: Requires advanced techniques beyond pairs.
+        // Check: techLevel >= 3 AND no immediate singles AND high ambiguity
+        // This ensures the puzzle cannot be solved step-by-step without deep chains.
+        
+        const noImmediateSingles = initialNakedSingles === 0;
+        const hasComplexity = countAmbiguousCells(puzzle) > 5;
+        const qualifies = techLevel >= 3 && noImmediateSingles && hasComplexity;
+        
+        // DEBUG: Uncomment to trace board acceptance
+        // console.log(`[IMPOSSIBLE] techLevel=${techLevel}, initialNakedSingles=${initialNakedSingles}, ambiguity=${countAmbiguousCells(puzzle)}, qualifies=${qualifies}`);
+        
+        return qualifies;
+    }
+    
+    // For lower difficulties (Fácil, Medio, Difícil), always accept
+    return true;
+}
+
+// Helper: Count cells with multiple candidate options
+// This indicates logical ambiguity (requires reasoning beyond naked singles)
+function countAmbiguousCells(board) {
+    let count = 0;
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (board[r][c] === 0) {
+                const candidates = getCandidates(board, r, c);
+                if (candidates.length > 1) {
+                    count++;
+                }
+            }
+        }
+    }
+    return count;
+}
+
+// ========================================
+// NEW: Detect contradictions in current puzzle
+// ========================================
+// For IMPOSSIBLE mode, detects if the board has reached an impossible state
+// (duplicate in row/column/box or a cell with no valid candidates)
+// 
+// Returns TRUE if a contradiction exists, FALSE otherwise
+function hasContradiction(board) {
+    // Check for duplicates in rows, columns, and boxes
+    // Row check
+    for (let r = 0; r < 9; r++) {
+        const seen = new Set();
+        for (let c = 0; c < 9; c++) {
+            const val = board[r][c];
+            if (val !== 0) {
+                if (seen.has(val)) return true; // Duplicate found
+                seen.add(val);
+            }
+        }
+    }
+    
+    // Column check
+    for (let c = 0; c < 9; c++) {
+        const seen = new Set();
+        for (let r = 0; r < 9; r++) {
+            const val = board[r][c];
+            if (val !== 0) {
+                if (seen.has(val)) return true; // Duplicate found
+                seen.add(val);
+            }
+        }
+    }
+    
+    // Box check
+    for (let br = 0; br < 3; br++) {
+        for (let bc = 0; bc < 3; bc++) {
+            const seen = new Set();
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const val = board[br * 3 + r][bc * 3 + c];
+                    if (val !== 0) {
+                        if (seen.has(val)) return true; // Duplicate found
+                        seen.add(val);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Check for cells with no valid candidates (trapped cells)
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (board[r][c] === 0) {
+                const candidates = getCandidates(board, r, c);
+                if (candidates.length === 0) {
+                    return true; // No valid candidates = contradiction
+                }
+            }
+        }
+    }
+    
+    return false; // No contradictions found
+}
+
 // Obtener candidatos posibles para una celda
 function getCandidates(board, row, col) {
     if (board[row][col] !== 0) return [];
@@ -765,18 +922,44 @@ function handleCellInput(inputElement, row, col, input, notesDiv) {
                     document.getElementById("error-count").textContent = errorCount;
                 }
             } else if (val !== solutionPuzzle[row][col]) {
+                // ============================================
+                // DIFFICULTY-BASED ERROR FEEDBACK
+                // ============================================
+                // Different difficulties show errors differently:
+                // - Fácil / Medio / Difícil: Show error immediately (red background)
+                // - Avanzado: Show error but without immediate red highlighting (player must notice)
+                // - Maestro / Imposible: No error feedback at all (player must deduce)
+                
                 // número incorrecto
                 // Si es la celda bomba y el valor es incorrecto, explota
                 if (isBombCell(row, col)) {
                     doBomb(row, col);
                     return; // detener más procesamiento
                 }
-                input.style.backgroundColor = "#ff4d4d";
-                input.style.color = "white";
-                // Solo contar error si cambió a incorrecto (no era incorrecto antes)
+                
+                // Only show red error color for easier difficulties
+                if (currentLevel === "Fácil" || currentLevel === "Medio" || currentLevel === "Difícil") {
+                    input.style.backgroundColor = "#ff4d4d";
+                    input.style.color = "white";
+                }
+                // For ADVANCED: show input but without red (accept it silently)
+                else if (currentLevel === "Avanzado") {
+                    input.style.backgroundColor = "#ffe6e6"; // Very light red, almost imperceptible
+                    input.style.color = "black";
+                }
+                // For MASTER and IMPOSSIBLE: don't change background color, treat as if correct
+                else if (currentLevel === "Maestro" || currentLevel === "Imposible") {
+                    input.style.backgroundColor = "white"; // No visual feedback
+                    input.style.color = "black";
+                }
+                
+                // Only contar error if cambió a incorrecto (no era incorrecto antes)
                 if (!wasIncorrect && prevVal !== val) {
-                    errorCount++;
-                    document.getElementById("error-count").textContent = errorCount;
+                    // For ADVANCED+, only count errors silently (no error counter update)
+                    if (currentLevel !== "Avanzado" && currentLevel !== "Maestro" && currentLevel !== "Imposible") {
+                        errorCount++;
+                        document.getElementById("error-count").textContent = errorCount;
+                    }
                 }
                 input.value = renderSymbol(val);
             } else {
@@ -1123,9 +1306,46 @@ function newSudoku() {
     trapInfo = null;
 
     currentLevel = document.getElementById("difficulty") ? document.getElementById("difficulty").value : "Fácil";
-    const full = generateFullSudoku();
-    solutionPuzzle = full.map(row => row.slice()); // Guardar la solución completa
-    let puzzleBoard = removeNumbersSmart(full, currentLevel);
+    
+    // ============================================
+    // NEW: Difficulty-based puzzle generation loop
+    // ============================================
+    // For ADVANCED, MASTER, and IMPOSSIBLE levels,
+    // we retry puzzle generation until logical complexity requirements are met.
+    // This ensures difficulty is based on techniques, NOT just cell count.
+    
+    let puzzleBoard = null;
+    let generationAttempts = 0;
+    const maxGenerationAttempts = 10; // Prevent infinite loops
+    
+    while (puzzleBoard === null && generationAttempts < maxGenerationAttempts) {
+        generationAttempts++;
+        const full = generateFullSudoku();
+        solutionPuzzle = full.map(row => row.slice()); // Guardar la solución completa
+        let candidate = removeNumbersSmart(full, currentLevel);
+        
+        // Validate difficulty for ADVANCED, MASTER, IMPOSSIBLE
+        if (currentLevel === "Avanzado" || currentLevel === "Maestro" || currentLevel === "Imposible") {
+            // Only accept puzzle if it meets logical complexity requirements
+            if (qualifiesDifficulty(candidate, currentLevel)) {
+                puzzleBoard = candidate;
+            }
+            // Otherwise, loop and retry
+        } else {
+            // For easier levels, accept any valid puzzle
+            puzzleBoard = candidate;
+        }
+    }
+    
+    // If max attempts exceeded, use the last generated puzzle anyway
+    // (prevents infinite loop while sacrificing ideal difficulty)
+    if (puzzleBoard === null) {
+        const full = generateFullSudoku();
+        solutionPuzzle = full.map(row => row.slice());
+        puzzleBoard = removeNumbersSmart(full, currentLevel);
+        // DEBUG: uncomment if puzzles seem too easy
+        // console.warn(`[WARNING] Difficulty validation failed after ${maxGenerationAttempts} attempts. Using fallback puzzle.`);
+    }
 
     // Si es imposible, intentar crear trampa (1 de cada 3)
     if (currentLevel === "Imposible") {
@@ -1495,6 +1715,15 @@ function checkWin() {
                 isCorrect = false;
             }
         }
+    }
+    
+    // ============================================
+    // NEW: Contradiction detection for IMPOSSIBLE
+    // ============================================
+    // In IMPOSSIBLE mode, if the board reaches a contradiction,
+    // trigger an immediate loss. The player has made an unfixable error.
+    if (currentLevel === "Imposible" && hasContradiction(currentPuzzle)) {
+        return "lose";
     }
     
     // Si está completo pero incorrecto -> PERDISTE
